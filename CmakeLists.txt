@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.0)
-project(hello_imgui)
+project(imgui_anim)
 
 # Настройка компилятора для Windows
 set(CMAKE_CXX_STANDARD 17)
@@ -8,49 +8,46 @@ if (WIN32)
     add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif()
 
-# Импорт ImGui (новый способ)
-include(FetchContent)
 
-FetchContent_Declare(
-    imgui
-    GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG docking
-)
-FetchContent_MakeAvailable(imgui)
+# Ищем необходимые библиотеки  
+find_package(OpenGL REQUIRED)  
+find_package(glfw3 REQUIRED)  
 
 
-# Вручную создаём библиотеку ImGui
-add_library(imgui STATIC
-    ${imgui_SOURCE_DIR}/imgui.cpp
-    ${imgui_SOURCE_DIR}/imgui_demo.cpp
-    ${imgui_SOURCE_DIR}/imgui_draw.cpp
-    ${imgui_SOURCE_DIR}/imgui_tables.cpp
-    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/../imgui)  # Путь к ImGui
+
+#message("Значение IMGUI_DIR: ${IMGUI_DIR}")
+
+file(GLOB IMGUI_SOURCES 
+    "${IMGUI_DIR}/*.cpp"
+    "${IMGUI_DIR}/backends/imgui_impl_glfw.cpp"
+    "${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp"
 )
 
-# Явное указание путей для бэкендов
-target_include_directories(imgui PUBLIC
-    ${imgui_SOURCE_DIR}
-    ${imgui_SOURCE_DIR}/backends
+
+# Основной исполняемый файл
+add_executable(imgui_anim
+    main.cpp  # Ваш основной файл с кодом
+    ${IMGUI_SOURCES}
 )
 
-# Находим GLFW (установленный через pacman)
-find_package(glfw3 REQUIRED)
+# Подключаем зависимости
+target_include_directories(imgui_anim  PRIVATE
+    ${CMAKE_SOURCE_DIR}  #наши заголовки
+    ${IMGUI_DIR}/
+    ${IMGUI_DIR}/backends
+    ${OPENGL_INCLUDE_DIR}    
+    ${GLFW3_INCLUDE_DIR}  
+) 
 
-# Создание исполняемого файла
-add_executable(hello_imgui main.cpp)
-
-
-
-# Подключение библиотек
-target_link_libraries(hello_imgui
-    PRIVATE
-    imgui
+target_link_libraries(imgui_anim PRIVATE
+ #    ${OPENGL_LIBRARIES}  
     glfw
-    opengl32
+    ${OPENGL_LIBRARIES}
+    ${SQLite3_LIBRARY}  
 )
+
+
 
 # Для Windows: копирование DLL GLFW
 if(WIN32)
@@ -59,9 +56,9 @@ if(WIN32)
         PATHS ${GLFW_ROOT}/lib-mingw-w64
         REQUIRED
     )
-    add_custom_command(TARGET hello_imgui POST_BUILD
+    add_custom_command(TARGET imgui_anim POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         "${GLFW_DLL}"
-        $<TARGET_FILE_DIR:hello_imgui>
+        $<TARGET_FILE_DIR:imgui_anim>
     )
 endif()

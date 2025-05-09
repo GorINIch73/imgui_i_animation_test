@@ -8,7 +8,17 @@
 #include <functional>
 #include <memory>
 #include <cmath> // для sinf, cosf и других математических функций
+#include <chrono>
 
+
+
+
+// Глобальные переменные для анимаций
+float rotation_angle = 0.0f;
+float scale_factor = 1.0f;
+bool increasing = true;
+std::vector<ImVec2> points;
+auto start_time = std::chrono::high_resolution_clock::now();
 
 
 
@@ -61,6 +71,42 @@ void DrawAnimatedCheckmark(ImVec2 pos, ImU32 color, float progress) {
     }
 }
 
+// Вращающаяся шестерёнка
+
+void DrawRotatingGear(ImVec2 center, float radius, ImU32 color) {
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    static float rotation = 0.0f;
+    rotation += ImGui::GetIO().DeltaTime * 2.0f;
+    
+    const int teeth = 8;
+    const float tooth_depth = radius * 0.3f;
+    
+    for (int i = 0; i < teeth; ++i) {
+        float angle = rotation + i * (2 * M_PI / teeth);
+        ImVec2 outer = ImVec2(
+            center.x + cosf(angle) * (radius + tooth_depth),
+            center.y + sinf(angle) * (radius + tooth_depth)
+        );
+        ImVec2 inner = ImVec2(
+            center.x + cosf(angle) * (radius - tooth_depth),
+            center.y + sinf(angle) * (radius - tooth_depth)
+        );
+        draw_list->AddLine(outer, inner, color, 2.0f);
+    }
+}
+
+// Пульсирующий круг (анимация масштаба)
+
+void DrawPulsingCircle(ImVec2 center, ImU32 color, float speed = 1.0f) {
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    static float t = 0.0f;
+    t += ImGui::GetIO().DeltaTime * speed;
+    
+    float scale = 0.8f + 0.2f * sinf(t * 3.0f);
+    float radius = 10.0f * scale;
+    
+    draw_list->AddCircleFilled(center, radius, color);
+}
 
 
 static void glfw_error_callback(int error, const char* description) {
@@ -98,14 +144,27 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+    	ImGuiViewport* viewport = ImGui::GetMainViewport();
+    
+	    // Устанавливаем положение и размер
+    	ImGui::SetNextWindowPos(viewport->Pos);
+	    ImGui::SetNextWindowSize(viewport->Size);
+
 	
 	// кастомные иконки
 		ImGui::Begin("Progress Indicators");
 		// Использование (progress от 0.0 до 1.0)
 		static float check_progress = 0.0f;
+		ImVec2 pos = ImGui::GetCursorScreenPos();
+
 		check_progress = fmodf(check_progress + ImGui::GetIO().DeltaTime * 0.5f, 1.0f);
 		DrawAnimatedCheckmark(ImGui::GetCursorScreenPos(), IM_COL32(0, 255, 0, 255), check_progress);
-        DrawLoadingSpinner(ImVec2(ImGui::GetCursorScreenPos().x+50,ImGui::GetCursorScreenPos().y+100), 10.0f, IM_COL32(0, 255, 0, 255));
+        DrawLoadingSpinner(ImVec2(pos.x+50,pos.y+50), 10.0f, IM_COL32(10, 155, 240, 255));
+		
+		DrawRotatingGear(ImVec2(pos.x+200,pos.y+100), 30.0f, IM_COL32(100, 55, 50, 255));
+		
+		DrawPulsingCircle(ImVec2(pos.x + 300, pos.y + 100), IM_COL32(255, 0, 50, 255));
+
 		ImGui::End();
 
 
